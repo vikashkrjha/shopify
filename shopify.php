@@ -1,7 +1,8 @@
 <?php
 
-	namespace sandeepshetty\shopify_api;
-	require 'vendor/autoload.php';
+	namespace phpish\shopify;
+	require_once '../curl/curl.php';
+	use phpish\curl;
 
 
 	function install_url($shop, $api_key)
@@ -63,9 +64,9 @@
 		{
 			try
 			{
-				$response = wcurl($method, $url, $query, $payload, $request_headers, $response_headers);
+				$response = curl\http_client($method, $url, $query, $payload, $request_headers, $response_headers);
 			}
-			catch(WcurlException $e)
+			catch(curl\Exception $e)
 			{
 				throw new CurlException($e->getMessage(), $e->getCode());
 			}
@@ -105,7 +106,7 @@
 
 
 	class CurlException extends \Exception { }
-	class Exception extends \Exception
+	class ApiException extends \Exception
 	{
 		protected $info;
 
