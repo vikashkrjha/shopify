@@ -42,7 +42,7 @@
 
 	function client($shop, $shops_token, $api_key, $shared_secret, $private_app=false, $legacy=false)
 	{
-		$password = $shops_token;
+		$shops_token = $legacy ? legacy_token_to_oauth_token($shops_token, $shared_secret, $private_app) : $shops_token;
 		$base_uri = $legacy ? legacy_baseurl($shop, $api_key, $shops_token) : "https://$shop";
 
 		return function ($method_uri, $query='', $payload='', &$response_headers=array(), $request_headers=array(), $curl_opts=array()) use ($base_uri, $shops_token)
