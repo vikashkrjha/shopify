@@ -1,8 +1,7 @@
 <?php
 
 	namespace phpish\shopify;
-	require_once '../curl/curl.php';
-	use phpish\curl;
+	use phpish\http;
 
 
 	function install_url($shop, $api_key)
@@ -27,57 +26,51 @@
 	}
 
 
-	function permission_url($shop, $api_key, $scope=array(), $redirect_uri='')
+	function authorization_url($shop, $api_key, $scopes=array(), $redirect_uri='')
 	{
-		$scope = empty($scope) ? '' : '&scope='.implode(',', $scope);
+		$scopes = empty($scopes) ? '' : '&scope='.implode(',', $scopes);
 		$redirect_uri = empty($redirect_uri) ? '' : '&redirect_uri='.urlencode($redirect_uri);
-		return "https://$shop/admin/oauth/authorize?client_id=$api_key$scope$redirect_uri";
+		return "https://$shop/admin/oauth/authorize?client_id=$api_key$scopes$redirect_uri";
 	}
 
 
-	function oauth_access_token($shop, $api_key, $shared_secret, $code)
+	function access_token($shop, $api_key, $shared_secret, $code)
 	{
-		return _api('POST', "https://$shop/admin/oauth/access_token", NULL, array('client_id'=>$api_key, 'client_secret'=>$shared_secret, 'code'=>$code));
+		return http\request("POST https://$shop/admin/oauth/access_token", array(), array('client_id'=>$api_key, 'client_secret'=>$shared_secret, 'code'=>$code));
 	}
 
 
-	function client($shop, $shops_token, $api_key, $shared_secret, $private_app=false)
+	function client($shop, $shops_token, $api_key, $shared_secret, $private_app=false, $legacy=false)
 	{
 		$password = $shops_token;
-		$baseurl = "https://$shop/";
+		$base_uri = $legacy ? legacy_baseurl($shop, $api_key, $shops_token) : "https://$shop";
 
-		return function ($method, $path, $params=array(), &$response_headers=array()) use ($baseurl, $shops_token)
+		return function ($method_uri, $query='', $payload='', &$response_headers=array(), $request_headers=array(), $curl_opts=array()) use ($base_uri, $shops_token)
 		{
-			$url = $baseurl.ltrim($path, '/');
-			$query = in_array($method, array('GET','DELETE')) ? $params : array();
-			$payload = in_array($method, array('POST','PUT')) ? stripslashes(json_encode($params)) : array();
+			$request_headers['X-Shopify-Access-Token'] = $shops_token;
+			$request_headers['content-type'] = 'application/json; charset=utf-8';
+			$http_client = http\client($base_uri, $request_headers);
 
-			$request_headers = array();
-			array_push($request_headers, "X-Shopify-Access-Token: $shops_token");
-			if (in_array($method, array('POST','PUT'))) array_push($request_headers, "Content-Type: application/json; charset=utf-8");
-
-			return _api($method, $url, $query, $payload, $request_headers, $response_headers);
-		};
-	}
-
-		function _api($method, $url, $query='', $payload='', $request_headers=array(), &$response_headers=array())
-		{
 			try
 			{
-				$response = curl\http_client($method, $url, $query, $payload, $request_headers, $response_headers);
+				$response = $http_client($method_uri, $query, $payload, $response_headers, $request_headers, $curl_opts);
 			}
-			catch(curl\Exception $e)
+			catch (http\CurlException $e) { throw new CurlException($e->getMessage(), $e->getCode(), $e->getRequest()); }
+			catch (http\ResponseException $e) { throw new ApiException($e->getMessage(), $e->getCode(), $e->getRequest(), $e->getResponse()); }
+			if (isset($response['errors']))
 			{
-				throw new CurlException($e->getMessage(), $e->getCode());
+				list($method, $uri) = explode(' ', $method_uri, 2);
+				$uri = rtrim($base_uri).'/'.ltrim($uri, '/');
+				$headers = $request_headers;
+				$request = compact('method', 'uri', 'query', 'headers', 'payload');
+				$response = array('headers'=>$response_headers, 'body'=>$response);
+				throw new ApiException($response_headers['http_status_message'].": $uri", $response_headers['http_status_code'], $request, $response);
 			}
-
-			$response = json_decode($response, true);
-
-			if (isset($response['errors']) or ($response_headers['http_status_code'] >= 400))
-					throw new ApiException(compact('method', 'path', 'params', 'response_headers', 'response', 'shops_myshopify_domain', 'shops_token'));
 
 			return (is_array($response) and !empty($response)) ? array_shift($response) : $response;
-		}
+
+		};
+	}
 
 
 	function calls_made($response_headers)
@@ -105,19 +98,9 @@
 		}
 
 
-	class CurlException extends \Exception { }
-	class ApiException extends \Exception
-	{
-		protected $info;
-
-		function __construct($info)
-		{
-			$this->info = $info;
-			parent::__construct($info['response_headers']['http_status_message'], $info['response_headers']['http_status_code']);
-		}
-
-		function getInfo() { $this->info; }
-	}
+	class Exception extends http\Exception { }
+	class CurlException extends Exception { }
+	class ApiException extends Exception { }
 
 
 	function legacy_token_to_oauth_token($shops_token, $shared_secret, $private_app=false)
