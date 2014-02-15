@@ -108,11 +108,4 @@
 		return $private_app ? $secret : md5($shared_secret.$shops_token);
 	}
 
-
-	function legacy_baseurl($shop, $api_key, $password)
-	{
-		return "https://$api_key:$password@$shop/";
-
-	}
-
 ?>
