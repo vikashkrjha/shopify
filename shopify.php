@@ -40,9 +40,8 @@
 	}
 
 
-	function client($shop, $shops_token, $api_key, $shared_secret, $private_app=false, $legacy=false)
+	function client($shop, $shops_token, $api_key, $shared_secret, $private_app=false)
 	{
-		$shops_token = $legacy ? legacy_token_to_oauth_token($shops_token, $shared_secret, $private_app) : $shops_token;
 		$base_uri = "https://$shop";
 
 		return function ($method_uri, $query='', $payload='', &$response_headers=array(), $request_headers=array(), $curl_opts=array()) use ($base_uri, $shops_token)
@@ -101,11 +100,5 @@
 	class Exception extends http\Exception { }
 	class CurlException extends Exception { }
 	class ApiException extends Exception { }
-
-
-	function legacy_token_to_oauth_token($shops_token, $shared_secret, $private_app=false)
-	{
-		return $private_app ? $secret : md5($shared_secret.$shops_token);
-	}
 
 ?>
