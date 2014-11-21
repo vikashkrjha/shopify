@@ -42,13 +42,13 @@
 	}
 
 
-	function client($shop, $shops_token, $api_key, $shared_secret, $private_app=false)
+	function client($shop, $oauth_token, $api_key, $private_app=false)
 	{
-		$base_uri = "https://$shop";
+		$base_uri = $private_app ? private_app_base_url($shop, $api_key, $oauth_token) : "https://$shop/";
 
-		return function ($method_uri, $query='', $payload='', &$response_headers=array(), $request_headers=array(), $curl_opts=array()) use ($base_uri, $shops_token)
+		return function ($method_uri, $query='', $payload='', &$response_headers=array(), $request_headers=array(), $curl_opts=array()) use ($base_uri, $oauth_token, $private_app)
 		{
-			$request_headers['X-Shopify-Access-Token'] = $shops_token;
+			if (!$private_app) $request_headers['X-Shopify-Access-Token'] = $oauth_token;
 			$request_headers['content-type'] = 'application/json; charset=utf-8';
 			$http_client = http\client($base_uri, $request_headers);
 
@@ -97,6 +97,12 @@
 			$params = explode('/', $response_headers['http_x_shopify_shop_api_call_limit']);
 			return (int) $params[$index];
 		}
+
+
+	function private_app_base_url($shop, $api_key, $password)
+	{
+		return "https://$api_key:$password@$shop/";
+	}
 
 
 	class Exception extends http\Exception { }
