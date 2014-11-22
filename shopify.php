@@ -38,13 +38,14 @@
 
 	function access_token($shop, $api_key, $shared_secret, $code)
 	{
+		// TODO: catch and throw exception from this namespace
 		return http\request("POST https://$shop/admin/oauth/access_token", array(), array('client_id'=>$api_key, 'client_secret'=>$shared_secret, 'code'=>$code));
 	}
 
 
 	function client($shop, $oauth_token, $api_key, $private_app=false)
 	{
-		$base_uri = $private_app ? private_app_base_url($shop, $api_key, $oauth_token) : "https://$shop/";
+		$base_uri = $private_app ? _private_app_base_url($shop, $api_key, $oauth_token) : "https://$shop/";
 
 		return function ($method_uri, $query='', $payload='', &$response_headers=array(), $request_headers=array(), $curl_opts=array()) use ($base_uri, $oauth_token, $private_app)
 		{
@@ -73,6 +74,11 @@
 		};
 	}
 
+		function _private_app_base_url($shop, $api_key, $password)
+		{
+			return "https://$api_key:$password@$shop/";
+		}
+
 
 	function calls_made($response_headers)
 	{
@@ -97,12 +103,6 @@
 			$params = explode('/', $response_headers['http_x_shopify_shop_api_call_limit']);
 			return (int) $params[$index];
 		}
-
-
-	function private_app_base_url($shop, $api_key, $password)
-	{
-		return "https://$api_key:$password@$shop/";
-	}
 
 
 	class Exception extends http\Exception { }
