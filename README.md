@@ -10,4 +10,4 @@ Simple [Shopify API](http://api.shopify.com/) client in PHP
 
 ## Usage and Quickstart Skeleton Project
 
-See [phpish/shopify_app-skeleton](https://github.com/phpish/shopify_app-skeleton)
+See [phpish/shopify_app-skeleton](https://github.com/phpish/shopify_app-skeleton) and [phpish/shopify_private_app-skeleton](https://github.com/phpish/shopify_private_app-skeleton)
