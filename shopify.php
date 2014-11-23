@@ -43,7 +43,7 @@
 	}
 
 
-	function client($shop, $oauth_token, $api_key, $private_app=false)
+	function client($shop, $api_key, $oauth_token, $private_app=false)
 	{
 		$base_uri = $private_app ? _private_app_base_url($shop, $api_key, $oauth_token) : "https://$shop/";
 
