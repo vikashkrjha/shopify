@@ -38,8 +38,12 @@
 
 	function access_token($shop, $api_key, $shared_secret, $code)
 	{
-		// TODO: catch and throw exception from this namespace
-		return http\request("POST https://$shop/admin/oauth/access_token", array(), array('client_id'=>$api_key, 'client_secret'=>$shared_secret, 'code'=>$code));
+		try
+		{
+			return http\request("POST https://$shop/admin/oauth/access_token", array(), array('client_id'=>$api_key, 'client_secret'=>$shared_secret, 'code'=>$code));
+		}
+		catch (http\CurlException $e) { throw new CurlException($e->getMessage(), $e->getCode(), $e->getRequest()); }
+		catch (http\ResponseException $e) { throw new ApiException($e->getMessage(), $e->getCode(), $e->getRequest(), $e->getResponse()); }
 	}
 
 
@@ -107,6 +111,16 @@
 
 	class Exception extends http\Exception { }
 	class CurlException extends Exception { }
-	class ApiException extends Exception { }
+	class ApiException extends Exception
+	{
+		function __construct($message, $code, $request, $response=array(), Exception $previous=null)
+		{
+			$response_body_json = isset($response['body']) ? $response['body'] : '';
+			$response = json_decode($response_body_json, true);
+			$response_error = isset($response['errors']) ? ' '.var_export($response['errors'], true) : '';
+			$this->message = $message.$response_error;
+			parent::__construct($this->message, $code, $request, $response, $previous);
+		}
+	}
 
 ?>
