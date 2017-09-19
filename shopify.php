@@ -57,7 +57,13 @@
 		{
 			if (!$private_app) $request_headers['X-Shopify-Access-Token'] = $oauth_token;
 			$request_headers['content-type'] = 'application/json; charset=utf-8';
-			$request_headers['content-length'] = strlen($payload);
+			if($method_uri == 'POST /admin/recurring_application_charges.json') {
+				if (is_array($payload)) {
+				    $request_headers['content-length'] = strlen(json_encode($payload));
+				}else{
+				    $request_headers['content-length'] = strlen($payload);
+				}
+		    	}
 			$http_client = http\client($base_uri, $request_headers);
 
 			try
